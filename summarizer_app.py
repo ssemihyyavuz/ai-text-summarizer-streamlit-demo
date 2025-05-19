@@ -66,8 +66,14 @@ if "user" not in st.session_state:
 
 # Show user info
 user = st.session_state["user"]
-st.success(f"Welcome, {user['name']} 👋")
-st.image(user["picture"], width=80)
+
+# Eğer isim yoksa varsayılana düş
+name = user.get("name", "User")
+st.success(f"Welcome, {name} 👋")
+
+# Eğer profil fotoğrafı varsa göster
+if user.get("picture"):
+    st.image(user["picture"], width=80)
 
 # ========== OPENAI API ==========
 api_key = st.secrets["openai"]["api_key"]
