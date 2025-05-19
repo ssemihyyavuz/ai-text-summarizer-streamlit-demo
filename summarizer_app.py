@@ -1,9 +1,7 @@
 import streamlit as st
 from openai import OpenAI
-import jwt
-from urllib.parse import urlencode, parse_qs
+from urllib.parse import urlencode
 import requests
-import os
 
 # ========== GOOGLE OAUTH2 CONFIG ==========
 client_id = st.secrets["google"]["client_id"]
@@ -30,17 +28,19 @@ if code and "user" not in st.session_state:
     token_json = token_response.json()
 
     access_token = token_json.get("access_token")
-    id_token = token_json.get("id_token")
 
-    # Step 2: Get user info
+    # Step 2: Get user info from Google
     headers = {"Authorization": f"Bearer {access_token}"}
     user_info = requests.get(userinfo_url, headers=headers).json()
 
+    # Optional debug output
+    # st.write("Google user info:", user_info)
+
     # Step 3: Store user in session state
     st.session_state["user"] = {
-        "name": user_info.get("name"),
-        "email": user_info.get("email"),
-        "picture": user_info.get("picture")
+        "name": user_info.get("name", "User"),
+        "email": user_info.get("email", "N/A"),
+        "picture": user_info.get("picture", None)
     }
 
     # Step 4: Clean up URL
@@ -67,17 +67,12 @@ if "user" not in st.session_state:
 # Show user info
 user = st.session_state["user"]
 
-# Eğer isim yoksa 'User' yaz
-name = user.get("name", "User")
-st.success(f"Welcome, {name} 👋")
-
-# Eğer 'picture' değeri varsa ve boş değilse göster
-picture_url = user.get("picture", "")
-if picture_url:
-    st.image(picture_url, width=80)
+# Safely display name and profile picture
+st.success(f"Welcome, {user.get('name', 'User')} 👋")
+if user.get("picture"):
+    st.image(user["picture"], width=80)
 else:
     st.info("No profile picture available.")
-
 
 # ========== OPENAI API ==========
 api_key = st.secrets["openai"]["api_key"]
