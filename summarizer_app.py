@@ -1,76 +1,83 @@
 import streamlit as st
 from openai import OpenAI
-from streamlit_oauth import OAuth2Component
 import jwt
+from urllib.parse import urlencode, parse_qs
+import requests
+import os
 
-# ========== Redirect Param Kontrolü ==========
-params = st.experimental_get_query_params()
-
-if "login" in params:
-    # Login sonrası URL parametresini temizle
-    st.experimental_set_query_params()
-
-# ========== AUTHENTICATION ==========
+# ========== GOOGLE OAUTH2 CONFIG ==========
 client_id = st.secrets["google"]["client_id"]
 client_secret = st.secrets["google"]["client_secret"]
+redirect_uri = "https://ai-text-summarizer-demo.streamlit.app/"  # Deploy URL
 
-oauth2 = OAuth2Component(
-    client_id=client_id,
-    client_secret=client_secret,
-    authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
-    token_endpoint="https://oauth2.googleapis.com/token"
-)
+auth_url = "https://accounts.google.com/o/oauth2/auth"
+token_url = "https://oauth2.googleapis.com/token"
+userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-redirect_uri = "https://ai-text-summarizer-demo.streamlit.app/"  # Cloud'da deploy ediyorsan burayı değiştir
+# ========== HANDLE AUTH FLOW ==========
+code = st.query_params.get("code", [None])[0]
 
-# Google ile login butonu
-result = oauth2.authorize_button(
-    name="Login with Google",
-    icon="🔐",
-    redirect_uri=redirect_uri,
-    scope="openid email profile",
-    key="google_oauth"
-)
+if code and "user" not in st.session_state:
+    # Step 1: Exchange code for access token
+    data = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code"
+    }
+    token_response = requests.post(token_url, data=data)
+    token_json = token_response.json()
 
-# Login işlemi başarılı olursa
-if result:
-    id_token = result["token"]["id_token"]
-    decoded = jwt.decode(id_token, options={"verify_signature": False})
+    access_token = token_json.get("access_token")
+    id_token = token_json.get("id_token")
 
-    # Kullanıcı bilgisini session'a kaydet
+    # Step 2: Get user info
+    headers = {"Authorization": f"Bearer {access_token}"}
+    user_info = requests.get(userinfo_url, headers=headers).json()
+
+    # Step 3: Store user in session state
     st.session_state["user"] = {
-        "name": decoded["name"],
-        "email": decoded["email"],
-        "picture": decoded["picture"]
+        "name": user_info.get("name"),
+        "email": user_info.get("email"),
+        "picture": user_info.get("picture")
     }
 
-    # URL'e login paramı ekleyerek sayfayı yeniden yüklemesini sağla
-    st.query_params(login="1")
-    st.stop()
+    # Step 4: Clean up URL
+    st.query_params.clear()
+    st.rerun()
 
 # ========== UI ==========
 st.title("🧠 AI Text Summarizer")
 
-# Eğer kullanıcı login olmuşsa
-if "user" in st.session_state:
-    user = st.session_state["user"]
-    st.success(f"Welcome, {user['name']} 👋")
-    st.image(user["picture"], width=80)
-else:
-    st.warning("You need to log in to use the summarizer.")
+if "user" not in st.session_state:
+    # Login button
+    params = urlencode({
+        "client_id": client_id,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "redirect_uri": redirect_uri,
+        "access_type": "offline",
+        "prompt": "consent"
+    })
+    login_link = f"{auth_url}?{params}"
+    st.markdown(f"[Login with Google]({login_link})", unsafe_allow_html=True)
+    st.stop()
 
-# ========== OpenAI Ayarı ==========
+# Show user info
+user = st.session_state["user"]
+st.success(f"Welcome, {user['name']} 👋")
+st.image(user["picture"], width=80)
+
+# ========== OPENAI API ==========
 api_key = st.secrets["openai"]["api_key"]
 client = OpenAI(api_key=api_key)
 
-# ========== Metin Girişi ==========
+# ========== INPUT & SUMMARIZATION ==========
 user_input = st.text_area("Enter your text:", height=250)
 
-# ========== Summarize Butonu ==========
 if st.button("Summarize"):
-    if "user" not in st.session_state:
-        st.error("You must be logged in to summarize text.")
-    elif not user_input.strip():
+    if not user_input.strip():
         st.warning("Please enter a text.")
     else:
         with st.spinner("Generating the Summary..."):
@@ -86,6 +93,5 @@ if st.button("Summarize"):
                 )
                 st.success("Summary:")
                 st.write(response.choices[0].message.content)
-
             except Exception as e:
                 st.error(f"Error Occurred: {e}")
