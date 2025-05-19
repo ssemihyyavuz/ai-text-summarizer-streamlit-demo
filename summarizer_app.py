@@ -67,13 +67,17 @@ if "user" not in st.session_state:
 # Show user info
 user = st.session_state["user"]
 
-# Eğer isim yoksa varsayılana düş
+# Eğer isim yoksa 'User' yaz
 name = user.get("name", "User")
 st.success(f"Welcome, {name} 👋")
 
-# Eğer profil fotoğrafı varsa göster
-if user.get("picture"):
-    st.image(user["picture"], width=80)
+# Eğer 'picture' değeri varsa ve boş değilse göster
+picture_url = user.get("picture", "")
+if picture_url:
+    st.image(picture_url, width=80)
+else:
+    st.info("No profile picture available.")
+
 
 # ========== OPENAI API ==========
 api_key = st.secrets["openai"]["api_key"]
