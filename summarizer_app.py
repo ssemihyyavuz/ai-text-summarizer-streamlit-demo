@@ -72,7 +72,8 @@ st.success(f"Welcome, {user.get('name', 'User')} 👋")
 if user.get("picture"):
     st.image(user["picture"], width=80)
 else:
-    st.info("No profile picture available.")
+    # st.info("No profile picture available.")
+    pass
 
 # ========== OPENAI API ==========
 api_key = st.secrets["openai"]["api_key"]
