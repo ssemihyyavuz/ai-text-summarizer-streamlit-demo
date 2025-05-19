@@ -8,7 +8,7 @@ Users can input any block of text, click a button, and get a smart summary insta
 
 ## 🚀 Live Demo
 
-👉 [Click here to try it out]([https://ssemihyyavuz-streamlit-demo-deployment.streamlit.app](https://ai-text-summarizer-demo.streamlit.app/)/)
+👉 [Click here to try it out]([https://ssemihyyavuz-streamlit-demo-deployment.streamlit.app](https://ai-text-summarizer-demo.streamlit.app/)
 
 ---
 
