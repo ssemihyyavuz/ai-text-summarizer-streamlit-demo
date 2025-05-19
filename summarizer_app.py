@@ -8,7 +8,7 @@ import os
 # ========== GOOGLE OAUTH2 CONFIG ==========
 client_id = st.secrets["google"]["client_id"]
 client_secret = st.secrets["google"]["client_secret"]
-redirect_uri = "https://ai-text-summarizer-demo.streamlit.app/"  # Deploy URL
+redirect_uri = "https://ai-text-summarizer-app-demo.streamlit.app/"  # Deploy URL
 
 auth_url = "https://accounts.google.com/o/oauth2/auth"
 token_url = "https://oauth2.googleapis.com/token"
